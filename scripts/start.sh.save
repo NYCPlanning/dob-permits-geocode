@@ -1,0 +1,29 @@
+mkdir -p temp
+#curl "https://nycopendata.socrata.com/api/views/ipu4-2q9a/rows.csv?accessType=DOWNLOAD" > temp/dob_permits.csv
+curl "https://nycopendata.socrata.com/api/views/ipu4-2q9a/rows.csv?accessType=DOWNLOAD" | head -n 10000 > temp/dob_permits.csv
+
+
+echo Rows in raw data:
+wc -l < temp/dob_permits.csv
+sed '/|/d' temp/dob_permits.csv > temp/dob_permits_cleaned.csv
+
+echo Rows after removing invalid lines:
+wc -l < temp/dob_permits_cleaned.csv
+
+echo Creating table
+psql $DATABASE_URL -f create.sql
+
+echo Loading data
+psql $DATABASE_URL  -c "\COPY dob_permits FROM 'temp/dob_permits_cleaned.csv' CSV HEADER;"  
+
+echo Assembling bbl column
+psql $DATABASE_URL -f makebbl.sql
+
+echo Looking up BBLs in PLUTO and BINs in building footprints
+psql $DATABASE_URL -f geocode.sql
+
+echo Looking up addresses in geosupport results table
+psql $DATABASE_URL -f gslookup.sql
+
+echo Running anything not yet geocoded through geosupport 
+node geocode.js
