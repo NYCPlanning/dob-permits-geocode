@@ -28,3 +28,6 @@ RUN touch /var/log/cron.log
  
 # Run the command on container startup
 CMD cron && tail -f /var/log/cron.log
+
+#run this image with -v to link the scripts directory and the output directory to the host filesystem:
+#docker run --name dob-permits --link {database-container}:mydatabase -v {host-script-repo}:/scripts -v {host-output-path}:/output -t {imageid}
